@@ -234,8 +234,9 @@ namespace Mediapipe.Unity
       {
         // Scale up world coordinates for better visualization (world coords are in meters, very small)
         // Using a scale factor of 100 to make the pose more visible in Unity world space
-        Vector3 worldScale = new Vector3(100f, 100f, 100f);
-        Debug.Log($"[PoseLandmarkListAnnotation] Drawing world landmarks with scale: {worldScale}");
+        // Also flip Y-axis to correct for MediaPipe's coordinate system (Y increases downward)
+        Vector3 worldScale = new Vector3(100f, -100f, 100f);
+        Debug.Log($"[PoseLandmarkListAnnotation] Drawing world landmarks with scale: {worldScale} (Y-flipped for correct orientation)");
         _landmarkListAnnotation.Draw(target, worldScale, visualizeZ);
         // Draw explicitly because connection annotation's targets remain the same.
         _connectionListAnnotation.Redraw();

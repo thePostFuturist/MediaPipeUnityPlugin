@@ -1,0 +1,13 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+
+# Rider ignored files
+/.idea.MediaPipeUnityPlugin-master.iml
+/modules.xml
+/contentModel.xml
+/projectSettingsUpdater.xml
+
+# Editor-based HTTP Client requests
+/httpRequests/
+

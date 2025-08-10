@@ -39,6 +39,15 @@ namespace Mediapipe.Unity.Sample.PoseLandmarkDetection
     public float MinTrackingConfidence { get; set; } = 0.5f;
     public bool OutputSegmentationMasks { get; set; } = false;
     public bool UseWorldCoordinates { get; set; } = false;
+    
+    // Smoothing configuration
+    public bool EnableSmoothing { get; set; } = true;
+    public float SmoothingFactor { get; set; } = 0.3f; // 0.0 = maximum smoothing, 1.0 = no smoothing
+    
+    // Confidence fallback configuration
+    public bool UseAPoseFallback { get; set; } = true;
+    public float ConfidenceThreshold { get; set; } = 0.3f;
+    
     public string ModelName => Model.GetDescription() ?? Model.ToString();
     public string ModelPath
     {

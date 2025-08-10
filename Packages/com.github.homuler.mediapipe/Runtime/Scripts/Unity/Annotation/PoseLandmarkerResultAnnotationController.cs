@@ -6,7 +6,11 @@
 
 using System.Collections.Generic;
 using Mediapipe.Tasks.Vision.PoseLandmarker;
+using Mediapipe.Unity.Constants;
+using Mediapipe.Unity.Filters;
+using Mediapipe.Unity.ScriptableObjects;
 using UnityEngine;
+using mptcc = Mediapipe.Tasks.Components.Containers;
 
 namespace Mediapipe.Unity
 {
@@ -14,17 +18,67 @@ namespace Mediapipe.Unity
   {
     [SerializeField] private bool _visualizeZ = false;
     [SerializeField] private bool _useWorldCoordinates = false;
+    [SerializeField] private bool _enableSmoothing = true;
+    [SerializeField] private float _smoothingFactor = 0.3f;
+    
+    [Header("A-Pose Fallback")]
+    [SerializeField] private bool _useAPoseFallback = true;
+    [SerializeField] private float _confidenceThreshold = 0.3f;
+    [SerializeField] private float _aPoseBlendFactor = 0.5f;
+    
+    [Header("Data Output")]
+    [SerializeField] private PoseLandmarkData _landmarkDataOutput;
+    [SerializeField] private bool _autoUpdateScriptableObject = true;
 
     private readonly object _currentTargetLock = new object();
     private PoseLandmarkerResult _currentTarget;
+    private LandmarkSmoothingFilter _smoothingFilter;
     
     // Debug logging variables
     private float _lastDebugLogTime = 0f;
     private const float DEBUG_LOG_INTERVAL = 5f; // Log every 5 seconds
 
-    public void InitScreen(int maskWidth, int maskHeight) => annotation.InitMask(maskWidth, maskHeight);
+    public void InitScreen(int maskWidth, int maskHeight)
+    {
+      annotation.InitMask(maskWidth, maskHeight);
+      // Initialize smoothing filter
+      _smoothingFilter = new LandmarkSmoothingFilter(_smoothingFactor);
+    }
 
     public void SetUseWorldCoordinates(bool useWorldCoordinates) => _useWorldCoordinates = useWorldCoordinates;
+    
+    public void SetSmoothingEnabled(bool enabled)
+    {
+      _enableSmoothing = enabled;
+      if (!enabled && _smoothingFilter != null)
+      {
+        _smoothingFilter.Reset();
+      }
+    }
+    
+    public void SetSmoothingFactor(float factor)
+    {
+      _smoothingFactor = factor;
+      if (_smoothingFilter != null)
+      {
+        _smoothingFilter.SetSmoothingFactor(factor);
+      }
+    }
+    
+    public void SetAPoseFallbackEnabled(bool enabled)
+    {
+      _useAPoseFallback = enabled;
+    }
+    
+    public void SetConfidenceThreshold(float threshold)
+    {
+      _confidenceThreshold = Mathf.Clamp01(threshold);
+    }
+    
+    public void SetAPoseBlendFactor(float factor)
+    {
+      _aPoseBlendFactor = Mathf.Clamp01(factor);
+    }
 
     public void DrawNow(PoseLandmarkerResult target)
     {
@@ -64,15 +118,128 @@ namespace Mediapipe.Unity
         isStale = false;
         if (_useWorldCoordinates && _currentTarget.poseWorldLandmarks != null)
         {
+          // Apply smoothing if enabled
+          var landmarksToRender = _currentTarget.poseWorldLandmarks;
+          if (_enableSmoothing && _smoothingFilter != null)
+          {
+            var smoothedLandmarks = _smoothingFilter.SmoothMultipleWorldLandmarks(_currentTarget.poseWorldLandmarks);
+            if (smoothedLandmarks != null)
+            {
+              landmarksToRender = smoothedLandmarks;
+            }
+          }
+          
+          // Apply A-Pose fallback if enabled
+          if (_useAPoseFallback && landmarksToRender != null)
+          {
+            var processedLandmarks = new List<mptcc.Landmarks>();
+            foreach (var landmarks in landmarksToRender)
+            {
+              // Check average confidence
+              float avgConfidence = PoseLandmarkConstants.CalculateAverageConfidence(landmarks);
+              
+              // Blend with A-Pose if confidence is low
+              if (avgConfidence < _confidenceThreshold)
+              {
+                var blended = PoseLandmarkConstants.BlendWithAPose(landmarks, _aPoseBlendFactor, _confidenceThreshold);
+                processedLandmarks.Add(blended);
+              }
+              else
+              {
+                processedLandmarks.Add(landmarks);
+              }
+            }
+            landmarksToRender = processedLandmarks;
+          }
+          
           // Always use visualizeZ=true for world coordinates to preserve 3D positions
-          annotation.DrawWorldLandmarks(_currentTarget.poseWorldLandmarks, true);
+          annotation.DrawWorldLandmarks(landmarksToRender, true);
           LogWorldLandmarkPositions();
+          
+          // Update ScriptableObject if configured
+          if (_autoUpdateScriptableObject && _landmarkDataOutput != null)
+          {
+            UpdateLandmarkDataOutput(landmarksToRender, true);
+          }
         }
-        else
+        else if (_currentTarget.poseLandmarks != null)
         {
-          annotation.Draw(_currentTarget.poseLandmarks, _visualizeZ);
+          // Apply smoothing to normalized landmarks if enabled
+          var landmarksToRender = _currentTarget.poseLandmarks;
+          if (_enableSmoothing && _smoothingFilter != null)
+          {
+            var smoothedPoses = new List<mptcc.NormalizedLandmarks>();
+            foreach (var pose in _currentTarget.poseLandmarks)
+            {
+              if (pose.landmarks != null)
+              {
+                var smoothedLandmarks = _smoothingFilter.SmoothNormalizedLandmarks(pose.landmarks);
+                smoothedPoses.Add(new mptcc.NormalizedLandmarks(smoothedLandmarks));
+              }
+              else
+              {
+                smoothedPoses.Add(pose);
+              }
+            }
+            landmarksToRender = smoothedPoses;
+          }
+          
+          annotation.Draw(landmarksToRender, _visualizeZ);
+          
+          // Update ScriptableObject if configured
+          if (_autoUpdateScriptableObject && _landmarkDataOutput != null)
+          {
+            UpdateLandmarkDataOutput(landmarksToRender, false);
+          }
         }
       }
+    }
+    
+    private void UpdateLandmarkDataOutput(IReadOnlyList<mptcc.Landmarks> worldLandmarks, bool isWorldCoords)
+    {
+      if (worldLandmarks == null || worldLandmarks.Count == 0) return;
+      
+      // For simplicity, we'll use the first pose if multiple are detected
+      var landmarks = worldLandmarks[0].landmarks;
+      if (landmarks == null || landmarks.Count == 0) return;
+      
+      var positions = new List<Vector3>();
+      var visibilities = new List<float>();
+      var presences = new List<float>();
+      
+      foreach (var landmark in landmarks)
+      {
+        if (landmark != null)
+        {
+          positions.Add(new Vector3(landmark.x, landmark.y, landmark.z));
+          visibilities.Add(landmark.visibility ?? -1f);
+          presences.Add(landmark.presence ?? -1f);
+        }
+      }
+      
+      _landmarkDataOutput.UpdateCurrentFrame(positions, visibilities, presences, isWorldCoords);
+    }
+    
+    private void UpdateLandmarkDataOutput(IReadOnlyList<mptcc.NormalizedLandmarks> normalizedLandmarks, bool isWorldCoords)
+    {
+      if (normalizedLandmarks == null || normalizedLandmarks.Count == 0) return;
+      
+      // For simplicity, we'll use the first pose if multiple are detected
+      var landmarks = normalizedLandmarks[0].landmarks;
+      if (landmarks == null || landmarks.Count == 0) return;
+      
+      var positions = new List<Vector3>();
+      var visibilities = new List<float>();
+      var presences = new List<float>();
+      
+      foreach (var landmark in landmarks)
+      {
+        positions.Add(new Vector3(landmark.x, landmark.y, landmark.z));
+        visibilities.Add(landmark.visibility ?? -1f);
+        presences.Add(landmark.presence ?? -1f);
+      }
+      
+      _landmarkDataOutput.UpdateCurrentFrame(positions, visibilities, presences, isWorldCoords);
     }
     
     private void LogWorldLandmarkPositions()
