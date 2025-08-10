@@ -38,6 +38,7 @@ namespace Mediapipe.Unity.Sample.PoseLandmarkDetection
     public float MinPosePresenceConfidence { get; set; } = 0.5f;
     public float MinTrackingConfidence { get; set; } = 0.5f;
     public bool OutputSegmentationMasks { get; set; } = false;
+    public bool UseWorldCoordinates { get; set; } = false;
     public string ModelName => Model.GetDescription() ?? Model.ToString();
     public string ModelPath
     {

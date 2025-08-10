@@ -37,6 +37,7 @@ namespace Mediapipe.Unity.Sample.PoseLandmarkDetection
       Debug.Log($"MinPosePresenceConfidence = {config.MinPosePresenceConfidence}");
       Debug.Log($"MinTrackingConfidence = {config.MinTrackingConfidence}");
       Debug.Log($"OutputSegmentationMasks = {config.OutputSegmentationMasks}");
+      Debug.Log($"UseWorldCoordinates = {config.UseWorldCoordinates}");
 
       yield return AssetLoader.PrepareAssetAsync(config.ModelPath);
 
@@ -61,6 +62,7 @@ namespace Mediapipe.Unity.Sample.PoseLandmarkDetection
 
       SetupAnnotationController(_poseLandmarkerResultAnnotationController, imageSource);
       _poseLandmarkerResultAnnotationController.InitScreen(imageSource.textureWidth, imageSource.textureHeight);
+      _poseLandmarkerResultAnnotationController.SetUseWorldCoordinates(config.UseWorldCoordinates);
 
       var transformationOptions = imageSource.GetTransformationOptions();
       var flipHorizontally = transformationOptions.flipHorizontally;

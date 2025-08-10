@@ -89,6 +89,39 @@ namespace Mediapipe.Unity
       }
     }
 
+    private static float _lastWorldDebugTime = 0f;
+    private static int _worldDrawCallCount = 0;
+    
+    public void Draw(in mptcc.Landmark target, Vector3 scale, bool visualizeZ = true)
+    {
+      if (ActivateFor(target))
+      {
+        var position = new Vector3(target.x * scale.x, target.y * scale.y, target.z * scale.z);
+        if (!visualizeZ)
+        {
+          position.z = 0.0f;
+        }
+        
+        // Debug logging for world coordinates
+        _worldDrawCallCount++;
+        float currentTime = UnityEngine.Time.time;
+        bool shouldLog = (currentTime - _lastWorldDebugTime) >= 5f;
+        
+        if (shouldLog && _worldDrawCallCount <= 33) // Log first 33 points (one pose)
+        {
+          UnityEngine.Debug.Log($"[PointAnnotation.Draw] Point {_worldDrawCallCount}: Raw=({target.x:F4}, {target.y:F4}, {target.z:F4}) Scale={scale} Final=({position.x:F4}, {position.y:F4}, {position.z:F4}) visualizeZ={visualizeZ}");
+        }
+        
+        if (shouldLog && _worldDrawCallCount >= 33)
+        {
+          _lastWorldDebugTime = currentTime;
+          _worldDrawCallCount = 0;
+        }
+        
+        transform.localPosition = position;
+      }
+    }
+
     public void Draw(mplt.RelativeKeypoint target, float threshold = 0.0f)
     {
       if (ActivateFor(target))

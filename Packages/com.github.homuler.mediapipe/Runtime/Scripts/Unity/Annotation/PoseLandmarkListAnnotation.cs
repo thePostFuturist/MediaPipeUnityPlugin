@@ -228,6 +228,25 @@ namespace Mediapipe.Unity
       Draw(target.landmarks, BodyParts.All, visualizeZ);
     }
 
+    public void DrawWorldLandmarks(IReadOnlyList<mptcc.Landmark> target, bool visualizeZ = true)
+    {
+      if (ActivateFor(target))
+      {
+        // Scale up world coordinates for better visualization (world coords are in meters, very small)
+        // Using a scale factor of 100 to make the pose more visible in Unity world space
+        Vector3 worldScale = new Vector3(100f, 100f, 100f);
+        Debug.Log($"[PoseLandmarkListAnnotation] Drawing world landmarks with scale: {worldScale}");
+        _landmarkListAnnotation.Draw(target, worldScale, visualizeZ);
+        // Draw explicitly because connection annotation's targets remain the same.
+        _connectionListAnnotation.Redraw();
+      }
+    }
+
+    public void DrawWorldLandmarks(mptcc.Landmarks target, bool visualizeZ = true)
+    {
+      DrawWorldLandmarks(target.landmarks, visualizeZ);
+    }
+
     private void ApplyLeftLandmarkColor(Color color)
     {
       var annotationCount = _landmarkListAnnotation == null ? 0 : _landmarkListAnnotation.count;

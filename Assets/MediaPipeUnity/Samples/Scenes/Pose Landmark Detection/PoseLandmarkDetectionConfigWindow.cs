@@ -21,6 +21,7 @@ namespace Mediapipe.Unity.Sample.PoseLandmarkDetection.UI
     [SerializeField] private InputField _minPosePresenceConfidenceInput;
     [SerializeField] private InputField _minTrackingConfidenceInput;
     [SerializeField] private Toggle _outputSegmentationMasksInput;
+    [SerializeField] private Toggle _useWorldCoordinatesInput;
 
     private PoseLandmarkDetectionConfig _config;
     private bool _isChanged;
@@ -100,6 +101,12 @@ namespace Mediapipe.Unity.Sample.PoseLandmarkDetection.UI
       _isChanged = true;
     }
 
+    private void ToggleUseWorldCoordinates()
+    {
+      _config.UseWorldCoordinates = _useWorldCoordinatesInput.isOn;
+      _isChanged = true;
+    }
+
     private void InitializeContents()
     {
       InitializeDelegate();
@@ -111,6 +118,7 @@ namespace Mediapipe.Unity.Sample.PoseLandmarkDetection.UI
       InitializeMinPosePresenceConfidence();
       InitializeMinTrackingConfidence();
       InitializeOutputSegmentationMasks();
+      InitializeUseWorldCoordinates();
     }
 
     private void InitializeDelegate()
@@ -165,6 +173,12 @@ namespace Mediapipe.Unity.Sample.PoseLandmarkDetection.UI
     {
       _outputSegmentationMasksInput.isOn = _config.OutputSegmentationMasks;
       _outputSegmentationMasksInput.onValueChanged.AddListener(delegate { ToggleOutputSegmentationMasks(); });
+    }
+
+    private void InitializeUseWorldCoordinates()
+    {
+      _useWorldCoordinatesInput.isOn = _config.UseWorldCoordinates;
+      _useWorldCoordinatesInput.onValueChanged.AddListener(delegate { ToggleUseWorldCoordinates(); });
     }
   }
 }

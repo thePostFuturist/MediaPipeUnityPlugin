@@ -113,6 +113,17 @@ namespace Mediapipe.Unity
       }
     }
 
+    public void DrawWorldLandmarks(IReadOnlyList<mptcc.Landmarks> targets, bool visualizeZ = true)
+    {
+      if (ActivateFor(targets))
+      {
+        CallActionForAll(targets, (annotation, target) =>
+        {
+          if (annotation != null) { annotation.DrawWorldLandmarks(target, visualizeZ); }
+        });
+      }
+    }
+
     protected override PoseLandmarkListWithMaskAnnotation InstantiateChild(bool isActive = true)
     {
       var annotation = base.InstantiateChild(isActive);

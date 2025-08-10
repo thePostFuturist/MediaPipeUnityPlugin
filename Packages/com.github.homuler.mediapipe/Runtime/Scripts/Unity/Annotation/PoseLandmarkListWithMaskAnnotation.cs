@@ -66,5 +66,14 @@ namespace Mediapipe.Unity
         _maskOverlayAnnotation.Draw();
       }
     }
+
+    public void DrawWorldLandmarks(mptcc.Landmarks poseWorldLandmarks, bool visualizeZ = true)
+    {
+      if (ActivateFor(poseWorldLandmarks.landmarks))
+      {
+        _poseLandmarkListAnnotation.DrawWorldLandmarks(poseWorldLandmarks, visualizeZ);
+        _maskOverlayAnnotation.Draw();
+      }
+    }
   }
 }

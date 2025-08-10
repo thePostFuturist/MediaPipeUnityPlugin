@@ -100,6 +100,46 @@ namespace Mediapipe.Unity
 
     public void Draw(mptcc.NormalizedLandmarks targets, bool visualizeZ = true) => Draw(targets.landmarks, visualizeZ);
 
+    private static float _lastListDebugTime = 0f;
+    
+    public void Draw(IReadOnlyList<mptcc.Landmark> targets, Vector3 scale, bool visualizeZ = true)
+    {
+      if (ActivateFor(targets))
+      {
+        // Debug logging
+        float currentTime = UnityEngine.Time.time;
+        if (currentTime - _lastListDebugTime >= 5f)
+        {
+          _lastListDebugTime = currentTime;
+          UnityEngine.Debug.Log($"[PointListAnnotation] Drawing {targets.Count} world landmarks with scale {scale}, visualizeZ={visualizeZ}");
+          
+          // Sample a few points to check their values
+          if (targets.Count > 0)
+          {
+            var first = targets[0];
+            UnityEngine.Debug.Log($"[PointListAnnotation] First point (Nose): ({first.x:F4}, {first.y:F4}, {first.z:F4})");
+            
+            if (targets.Count > 11)
+            {
+              var leftShoulder = targets[11];
+              UnityEngine.Debug.Log($"[PointListAnnotation] Point 11 (L.Shoulder): ({leftShoulder.x:F4}, {leftShoulder.y:F4}, {leftShoulder.z:F4})");
+            }
+            
+            if (targets.Count > 23)
+            {
+              var leftHip = targets[23];
+              UnityEngine.Debug.Log($"[PointListAnnotation] Point 23 (L.Hip): ({leftHip.x:F4}, {leftHip.y:F4}, {leftHip.z:F4})");
+            }
+          }
+        }
+        
+        CallActionForAll(targets, (annotation, target) =>
+        {
+          if (annotation != null) { annotation.Draw(in target, scale, visualizeZ); }
+        });
+      }
+    }
+
     public void Draw(IReadOnlyList<mplt.RelativeKeypoint> targets, float threshold = 0.0f)
     {
       if (ActivateFor(targets))

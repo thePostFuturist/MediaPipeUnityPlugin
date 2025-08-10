@@ -194,9 +194,6 @@ namespace Mediapipe {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static partial class Types {
       public enum Mode {
-        /// <summary>
-        /// Defaults to CONVENTIONAL
-        /// </summary>
         [pbr::OriginalName("DEFAULT")] Default = 0,
         /// <summary>
         /// OpenGL: bottom-left origin
